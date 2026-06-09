@@ -1,0 +1,8 @@
+# Markups fiducial file version = 4.3
+# CoordinateSystem = 0
+# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID
+vtkMRMLMarkupsFiducialNode_0,5.91381,-334.702,243.5,0,0,0,1,1,1,0,chin,,vtkMRMLScalarVolumeNode2
+vtkMRMLMarkupsFiducialNode_1,56.8053,-418.199,315.5,0,0,0,1,1,1,0,mand_r,,vtkMRMLScalarVolumeNode2
+vtkMRMLMarkupsFiducialNode_2,-45.0096,-415.846,312.5,0,0,0,1,1,1,0,mand_l,,vtkMRMLScalarVolumeNode2
+vtkMRMLMarkupsFiducialNode_3,4.32211,-431.654,288.5,0,0,0,1,1,1,0,odont_proc,,vtkMRMLScalarVolumeNode2
+vtkMRMLMarkupsFiducialNode_4,5.85,-509.831,323.407,0,0,0,1,1,1,0,occ_bone,,vtkMRMLScalarVolumeNode2
