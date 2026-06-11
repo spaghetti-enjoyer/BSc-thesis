@@ -217,12 +217,20 @@ class GuidedBackprop:
         # store post-relu activations on the module for use in backward
         module._gbp_activation = output.detach()
 
+    # @staticmethod
+    # def _backward_hook(module, grad_input, grad_output):
+    #     # gate 1: only positive incoming gradients (standard deconvnet rule)
+    #     guided_grad = torch.clamp(grad_output[0], min=0.0)
+    #     # gate 2: only where forward activation was positive (guided rule)
+    #     guided_grad = guided_grad * (module._gbp_activation > 0).float()
+    #     return (guided_grad,)
+    
     @staticmethod
     def _backward_hook(module, grad_input, grad_output):
         # gate 1: only positive incoming gradients (standard deconvnet rule)
         guided_grad = torch.clamp(grad_output[0], min=0.0)
         # gate 2: only where forward activation was positive (guided rule)
-        guided_grad = guided_grad * (module._gbp_activation > 0).float()
+        guided_grad = guided_grad * (module._gbp_activation > 0).to(guided_grad.dtype)
         return (guided_grad,)
 
     def generate(
@@ -233,7 +241,7 @@ class GuidedBackprop:
     ) -> torch.Tensor:
         """
         Compute a GBP saliency map.
-        
+
         Args:
             input_tensor: (1, 1, D, H, W) — single normalised CT volume,
                         requires_grad will be set automatically.

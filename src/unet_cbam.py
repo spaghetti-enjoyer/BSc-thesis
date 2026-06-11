@@ -252,10 +252,16 @@ class GuidedBackprop:
     def _forward_hook(module, input, output):
         module._gbp_activation = output.detach()
 
+    # @staticmethod
+    # def _backward_hook(module, grad_input, grad_output):
+    #     guided_grad = torch.clamp(grad_output[0], min=0.0)
+    #     guided_grad = guided_grad * (module._gbp_activation > 0).float()
+    #     return (guided_grad,)
+    
     @staticmethod
     def _backward_hook(module, grad_input, grad_output):
         guided_grad = torch.clamp(grad_output[0], min=0.0)
-        guided_grad = guided_grad * (module._gbp_activation > 0).float()
+        guided_grad = guided_grad * (module._gbp_activation > 0).to(guided_grad.dtype)
         return (guided_grad,)
 
     def generate(
