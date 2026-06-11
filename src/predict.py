@@ -2,9 +2,9 @@
 infer.py — run segmentation and GBP saliency maps for a single patient.
 
 Usage:
-    python infer.py \
-        --patient  0522c0001 \
-        --data     BSc-Thesis-Datasets/parotid_PDDCA+deepmind \
+    python src/predict.py \
+        --patient  0522c0416 \
+        --data     parotid_PDDCA+deepmind \
         --basic    models/unet_20260609_150324_n52_lr0.0001_f64.pt \
         --cbam     models/cbam_20260609_162153_n52_lr0.0001_f64.pt \
         --model    both \
@@ -122,12 +122,12 @@ def run_inference(model, scan_tensor, device, model_name, gbp_class):
     # --- GBP saliency ---
     print(f"  [{model_name}] Running GBP for left parotid...")
     gbp = gbp_class(model)
-    saliency_l = gbp.generate(scan_tensor.cpu(), class_idx=0)
+    saliency_l = gbp.generate(scan_tensor, class_idx=0)
     gbp.remove_hooks()
 
     print(f"  [{model_name}] Running GBP for right parotid...")
     gbp = gbp_class(model)
-    saliency_r = gbp.generate(scan_tensor.cpu(), class_idx=1)
+    saliency_r = gbp.generate(scan_tensor, class_idx=1)
     gbp.remove_hooks()
 
     return pred_masks, saliency_l, saliency_r

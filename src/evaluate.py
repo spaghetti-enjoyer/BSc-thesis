@@ -81,7 +81,7 @@ def evaluate(model, loader, device):
             'dsc_right': round(dsc_r, 4),
             'mean_dsc':  round((dsc_l + dsc_r) / 2, 4),
         })
-        print(f"results: {results}")
+        # print(f"results: {results}")
     return results
 
 
