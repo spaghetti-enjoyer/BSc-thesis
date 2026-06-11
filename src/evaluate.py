@@ -3,10 +3,10 @@ evaluate.py — run both trained models on the held-out test set and
 produce a per-patient DSC table plus summary statistics.
 
 Usage:
-    python unets/evaluate.py \
-        --data  BSc-Thesis-Datasets/parotid_PDDCA+deepmind \
-        --basic unet_20260609_150324_n52_lr0.0001_f64.pt \
-        --cbam  cbam_20260609_162153_n52_lr0.0001_f64.pt
+    python src/evaluate.py \
+        --data  parotid_PDDCA+deepmind \
+        --basic models/unet_20260609_150324_n52_lr0.0001_f64.pt \
+        --cbam  models/cbam_20260609_162153_n52_lr0.0001_f64.pt
 """
 
 import argparse
@@ -68,12 +68,12 @@ def evaluate(model, loader, device):
     """
     results = []
     for scan, mask, pids in loader:
-        print("loop")
+        # print("loop")
         scan = scan.to(device)
         mask = mask.to(device)
-        print("time to pred")
+        # print("time to pred")
         pred = model(scan)
-        print("mid")
+        # print("mid")
         dsc_l, dsc_r = dice(pred, mask)
         results.append({
             'patient':  pids[0],
@@ -161,19 +161,19 @@ if __name__ == "__main__":
     # --- evaluate vanilla first, then free it ---
     print("\nEvaluating vanilla U-Net...")
     basic_model   = load_basic(args.basic, device)
-    print("hello")
+    # print("hello")
     basic_results = evaluate(basic_model, test_loader, device)
     del basic_model
-    if device.type == 'mps':
-        torch.mps.empty_cache()
+    # if device == 'mps':
+    #     torch.mps.empty_cache()
 
     # --- now load CBAM ---
     print("Evaluating CBAM U-Net...")
     cbam_model    = load_cbam(args.cbam, device)
     cbam_results  = evaluate(cbam_model, test_loader, device)
     del cbam_model
-    if device.type == 'mps':
-        torch.mps.empty_cache()
+    # if device.type == 'mps':
+    #     torch.mps.empty_cache()
 
     # --- load and evaluate ---
     # print("\nEvaluating vanilla U-Net...")

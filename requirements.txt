@@ -1,0 +1,4 @@
+pynrrd
+huggingface_hub
+torch
+matplotlib

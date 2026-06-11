@@ -1,6 +1,6 @@
 #!/bin/bash
-# pip install -r requirements.txt
-pip install huggingface_hub
+pip install -r requirements.txt
+# pip install huggingface_hub
 
 # pull model weights
 mkdir -p models
