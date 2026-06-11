@@ -150,6 +150,11 @@ def save_nrrd(array, path):
 
 def save_results(pred_masks, saliency_l, saliency_r, out_dir, prefix):
     """Save predicted masks and saliency maps for one model."""
+
+    print(f"pred_masks shape: {pred_masks.shape}")
+    print(f"pred_masks[0] shape: {pred_masks[0].shape}")
+    print(f"pred_masks[1] shape: {pred_masks[1].shape}")
+
     save_nrrd(pred_masks[0],  os.path.join(out_dir, f"{prefix}_pred_left.nrrd"))
     save_nrrd(pred_masks[1],  os.path.join(out_dir, f"{prefix}_pred_right.nrrd"))
     save_nrrd(saliency_l,     os.path.join(out_dir, f"{prefix}_saliency_left.nrrd"))
