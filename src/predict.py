@@ -118,6 +118,8 @@ def run_inference(model, scan_tensor, device, model_name, gbp_class):
         pred = model(scan_tensor)  # (1, 2, D, H, W)
 
     pred_masks = pred[0].cpu().numpy()  # (2, D, H, W)
+    del pred
+    torch.cuda.empty_cache()  # free before GBP to avoid running out of memory
 
     # --- GBP saliency ---
     print(f"  [{model_name}] Running GBP for left parotid...")
