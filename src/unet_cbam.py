@@ -265,27 +265,60 @@ class GuidedBackprop:
         target_mask: torch.Tensor = None,
     ) -> torch.Tensor:
         self.model.eval()
-        x = input_tensor.clone()
+        self.model.half()
+
+        x = input_tensor.clone().half()
         x.requires_grad_(True)
 
         output = self.model(x)
 
         pred_channel = output[0, class_idx]
         if target_mask is not None:
-            scalar = (pred_channel * target_mask.squeeze()).sum()
+            scalar = (pred_channel * target_mask.squeeze().half()).sum()
         else:
-            foreground = (pred_channel > 0.5).float()
+            foreground = (pred_channel > 0.5).half()
             scalar = (pred_channel * foreground).sum()
 
         self.model.zero_grad()
         scalar.backward()
 
-        saliency = x.grad[0, 0].detach().cpu()
+        saliency = x.grad[0, 0].detach().float().cpu()
         saliency = torch.clamp(saliency, min=0.0)
         if saliency.max() > 0:
             saliency = saliency / saliency.max()
 
+        self.model.float()  # restore for next use
         return saliency.numpy()
+    
+    # # original
+    # def generate(
+    #     self,
+    #     input_tensor: torch.Tensor,
+    #     class_idx: int = 0,
+    #     target_mask: torch.Tensor = None,
+    # ) -> torch.Tensor:
+    #     self.model.eval()
+    #     x = input_tensor.clone()
+    #     x.requires_grad_(True)
+
+    #     output = self.model(x)
+
+    #     pred_channel = output[0, class_idx]
+    #     if target_mask is not None:
+    #         scalar = (pred_channel * target_mask.squeeze()).sum()
+    #     else:
+    #         foreground = (pred_channel > 0.5).float()
+    #         scalar = (pred_channel * foreground).sum()
+
+    #     self.model.zero_grad()
+    #     scalar.backward()
+
+    #     saliency = x.grad[0, 0].detach().cpu()
+    #     saliency = torch.clamp(saliency, min=0.0)
+    #     if saliency.max() > 0:
+    #         saliency = saliency / saliency.max()
+
+    #     return saliency.numpy()
 
     def remove_hooks(self):
         for hook in self.hooks:

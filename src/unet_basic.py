@@ -233,49 +233,99 @@ class GuidedBackprop:
     ) -> torch.Tensor:
         """
         Compute a GBP saliency map.
-
+        
         Args:
             input_tensor: (1, 1, D, H, W) — single normalised CT volume,
-                          requires_grad will be set automatically.
+                        requires_grad will be set automatically.
             class_idx:    which output channel to explain (0=left, 1=right parotid).
             target_mask:  optional (1, D, H, W) binary mask to restrict the
-                          backward signal to predicted foreground voxels only.
-                          If None, backprops from the sum of all predicted
-                          foreground voxels for class_idx (recommended).
-
+                        backward signal to predicted foreground voxels only.
+                        If None, backprops from the sum of all predicted
+                        foreground voxels for class_idx (recommended).
         Returns:
             saliency: (D, H, W) numpy array, values in [0, 1] after normalisation.
         """
         self.model.eval()
+        self.model.half()
 
-        x = input_tensor.clone()
+        x = input_tensor.clone().half()
         x.requires_grad_(True)
 
         # forward
-        output = self.model(x)  # (1, 2, D, H, W), already sigmoid-ed
+        output = self.model(x)
 
-        # build scalar target: sum of predicted foreground for the chosen class
-        pred_channel = output[0, class_idx]  # (D, H, W)
+        # build scalar target
+        pred_channel = output[0, class_idx]
         if target_mask is not None:
-            scalar = (pred_channel * target_mask.squeeze()).sum()
+            scalar = (pred_channel * target_mask.squeeze().half()).sum()
         else:
-            # use predicted probability > 0.5 as the region of interest
-            foreground = (pred_channel > 0.5).float()
+            foreground = (pred_channel > 0.5).half()
             scalar = (pred_channel * foreground).sum()
 
         # backward
         self.model.zero_grad()
         scalar.backward()
 
-        # the gradient w.r.t. the input is the saliency map
-        saliency = x.grad[0, 0].detach().cpu()  # (D, H, W)
-
-        # normalise to [0, 1] for visualisation
-        saliency = torch.clamp(saliency, min=0.0)  # GBP only shows positives
+        # saliency map
+        saliency = x.grad[0, 0].detach().float().cpu()
+        saliency = torch.clamp(saliency, min=0.0)
         if saliency.max() > 0:
             saliency = saliency / saliency.max()
 
+        self.model.float()  # restore for next use
         return saliency.numpy()
+
+    # def generate(
+    #     self,
+    #     input_tensor: torch.Tensor,
+    #     class_idx: int = 0,
+    #     target_mask: torch.Tensor = None,
+    # ) -> torch.Tensor:
+    #     """
+    #     Compute a GBP saliency map.
+
+    #     Args:
+    #         input_tensor: (1, 1, D, H, W) — single normalised CT volume,
+    #                       requires_grad will be set automatically.
+    #         class_idx:    which output channel to explain (0=left, 1=right parotid).
+    #         target_mask:  optional (1, D, H, W) binary mask to restrict the
+    #                       backward signal to predicted foreground voxels only.
+    #                       If None, backprops from the sum of all predicted
+    #                       foreground voxels for class_idx (recommended).
+
+    #     Returns:
+    #         saliency: (D, H, W) numpy array, values in [0, 1] after normalisation.
+    #     """
+    #     self.model.eval()
+
+    #     x = input_tensor.clone()
+    #     x.requires_grad_(True)
+
+    #     # forward
+    #     output = self.model(x)  # (1, 2, D, H, W), already sigmoid-ed
+
+    #     # build scalar target: sum of predicted foreground for the chosen class
+    #     pred_channel = output[0, class_idx]  # (D, H, W)
+    #     if target_mask is not None:
+    #         scalar = (pred_channel * target_mask.squeeze()).sum()
+    #     else:
+    #         # use predicted probability > 0.5 as the region of interest
+    #         foreground = (pred_channel > 0.5).float()
+    #         scalar = (pred_channel * foreground).sum()
+
+    #     # backward
+    #     self.model.zero_grad()
+    #     scalar.backward()
+
+    #     # the gradient w.r.t. the input is the saliency map
+    #     saliency = x.grad[0, 0].detach().cpu()  # (D, H, W)
+
+    #     # normalise to [0, 1] for visualisation
+    #     saliency = torch.clamp(saliency, min=0.0)  # GBP only shows positives
+    #     if saliency.max() > 0:
+    #         saliency = saliency / saliency.max()
+
+    #     return saliency.numpy()
 
     def remove_hooks(self):
         """Must be called after use to avoid memory leaks and hook accumulation."""
