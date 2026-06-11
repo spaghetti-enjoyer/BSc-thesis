@@ -20,7 +20,7 @@ class ChannelAttention3D(nn.Module):
         # shared MLP — implemented as 1x1x1 convs
         self.fc = nn.Sequential(
             nn.Conv3d(in_planes, max(in_planes // ratio, 1), kernel_size=1, bias=False),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
             nn.Conv3d(max(in_planes // ratio, 1), in_planes, kernel_size=1, bias=False),
         )
         self.sigmoid = nn.Sigmoid()
@@ -81,10 +81,10 @@ class DoubleConv(nn.Module):
         self.double_conv = nn.Sequential(
             nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm3d(mid_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
             nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm3d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
         )
         self.cbam = CBAM3D(out_channels) if use_cbam else None
 

@@ -17,10 +17,10 @@ class DoubleConv(nn.Module):
         self.double_conv = nn.Sequential(
             nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm3d(mid_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False), # changed to not be in place so that the ydont conflict with gbp's hooks
             nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm3d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
         )
 
     def forward(self, x):
