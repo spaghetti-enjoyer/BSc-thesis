@@ -4,6 +4,10 @@ import nrrd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 
+"""
+python  src/dataset.py parotid_PDDCA+deepmind
+"""
+
 
 # ---------------------------------------------------------------------------
 # Normalization
@@ -49,7 +53,6 @@ def augment(scan: np.ndarray, mask: np.ndarray):
     if np.random.rand() < 0.5:
         scan = np.flip(scan, axis=2).copy()
         mask = np.flip(mask, axis=3).copy()
-        mask = mask[[1, 0], ...]  # swap channel 0 (left) and channel 1 (right)
 
     # --- Gaussian noise ---
     if np.random.rand() < 0.5:
@@ -215,7 +218,7 @@ if __name__ == "__main__":
     scan, mask, pid = train_ds[20]
     slice_idx = 24  # middle slice
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
     axes[0].imshow(scan[0, slice_idx], cmap='gray')
     axes[0].set_title('CT')
     axes[1].imshow(mask[0, slice_idx], cmap='hot')
