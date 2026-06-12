@@ -2,6 +2,7 @@ import os
 import numpy as np
 import nrrd
 import torch
+from scipy.ndimage import rotate
 from torch.utils.data import Dataset, DataLoader, random_split
 
 """
@@ -53,6 +54,13 @@ def augment(scan: np.ndarray, mask: np.ndarray):
     if np.random.rand() < 0.5:
         scan = np.flip(scan, axis=2).copy()
         mask = np.flip(mask, axis=3).copy()
+
+    # random rotation in the axial plane (D-H plane) ±10 degrees
+    if np.random.rand() < 0.5:
+        angle = np.random.uniform(-10, 10)
+        scan = rotate(scan, angle, axes=(1, 2), reshape=False, order=1, cval=scan.min())
+        mask0 = rotate(mask[0], angle, axes=(1, 2), reshape=False, order=0, cval=0)
+        mask = mask0[np.newaxis]
 
     # --- Gaussian noise ---
     if np.random.rand() < 0.5:
