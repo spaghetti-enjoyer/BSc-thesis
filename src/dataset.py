@@ -28,7 +28,7 @@ def augment(scan: np.ndarray, mask: np.ndarray):
     """
     Simple augmentations that are safe for medical images.
     scan:  (D, H, W)  float32
-    mask:  (2, D, H, W)  float32  [left, right channels]
+    mask:  (1, D, H, W)  float32  [left channel]
 
     All flips are applied to both scan and mask consistently.
     Intensity jitter is scan-only.
@@ -84,7 +84,7 @@ class PDDCADataset(Dataset):
 
     Returns:
         scan:  (1, D, H, W) float32 tensor  — normalized CT
-        mask:  (2, D, H, W) float32 tensor  — [left_parotid, right_parotid]
+        mask:  (1, D, H, W) float32 tensor  — [left_parotid]
         name:  patient folder name (for debugging)
     """
 
@@ -97,8 +97,8 @@ class PDDCADataset(Dataset):
         for pid in self.ids:
             scan_path = os.path.join(root, pid, 'img.nrrd')
             left_path = os.path.join(root, pid, 'structures', 'Parotid_L.nrrd')
-            right_path= os.path.join(root, pid, 'structures', 'Parotid_R.nrrd')
-            for p in [scan_path, left_path, right_path]:
+            # right_path= os.path.join(root, pid, 'structures', 'Parotid_R.nrrd')
+            for p in [scan_path, left_path]: #, right_path]:
                 if not os.path.exists(p):
                     raise FileNotFoundError(f"Missing file: {p}")
 
@@ -111,18 +111,18 @@ class PDDCADataset(Dataset):
 
         scan,  _ = nrrd.read(os.path.join(self.root, pid, 'img.nrrd'))
         left,  _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_L.nrrd'))
-        right, _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_R.nrrd'))
+        # right, _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_R.nrrd'))
 
         # nrrd loads as (W, H, D) by convention — transpose to (D, H, W)
         scan  = scan.transpose(2, 0, 1).astype(np.float32)   # (D, H, W)
         left  = left.transpose(2, 0, 1).astype(np.float32)
-        right = right.transpose(2, 0, 1).astype(np.float32)
+        # right = right.transpose(2, 0, 1).astype(np.float32)
 
         # normalize scan
         scan = normalize(scan)
 
         # stack masks into 2-channel array: (2, D, H, W)
-        mask = np.stack([left, right], axis=0)
+        mask = np.stack([left], axis=0)
 
         # augment (training only)
         if self.do_augment:
@@ -134,7 +134,7 @@ class PDDCADataset(Dataset):
         # verify shape
         assert scan.shape == (1, 48, 208, 272), \
             f"Unexpected scan shape {scan.shape} for patient {pid}"
-        assert mask.shape == (2, 48, 208, 272), \
+        assert mask.shape == (1, 48, 208, 272), \
             f"Unexpected mask shape {mask.shape} for patient {pid}"
 
         return (
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     print(f"Mask shape: {mask.shape}  dtype: {mask.dtype}")
     print(f"Scan range: [{scan.min():.2f}, {scan.max():.2f}]")
     print(f"Left parotid voxels:  {mask[0].sum().int()}")
-    print(f"Right parotid voxels: {mask[1].sum().int()}")
+    # print(f"Right parotid voxels: {mask[1].sum().int()}")
 
     # check dataloader batching
     loader = DataLoader(train_ds, batch_size=2, shuffle=True, num_workers=0)
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     axes[0].set_title('CT')
     axes[1].imshow(mask[0, slice_idx], cmap='hot')
     axes[1].set_title('Left parotid')
-    axes[2].imshow(mask[1, slice_idx], cmap='hot')
-    axes[2].set_title('Right parotid')
+    # axes[2].imshow(mask[1, slice_idx], cmap='hot')
+    # axes[2].set_title('Right parotid')
     plt.suptitle(pid)
     plt.show()

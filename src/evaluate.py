@@ -25,7 +25,7 @@ from unet_cbam  import UNet3D_CBAM
 
 def load_basic(path, device):
     model = UNet3D(
-        n_channels=1, n_classes=2,
+        n_channels=1, n_classes=1,
         input_shape=(48, 208, 272),
         bilinear=False, base_filters=64,
     ).to(device)
@@ -37,7 +37,7 @@ def load_basic(path, device):
 
 def load_cbam(path, device):
     model = UNet3D_CBAM(
-        n_channels=1, n_classes=2,
+        n_channels=1, n_classes=1,
         input_shape=(48, 208, 272),
         bilinear=False, base_filters=64,
     ).to(device)
@@ -49,7 +49,7 @@ def load_cbam(path, device):
 
 @torch.no_grad()
 def dice(pred, target, threshold=0.5, smooth=1e-5):
-    """Hard DSC per class. Returns (dsc_left, dsc_right)."""
+    """Hard DSC. Returns dsc_left as float."""
     pred_bin    = (pred > threshold).float()
     pred_flat   = pred_bin.view(pred.shape[0], pred.shape[1], -1)
     target_flat = target.view(target.shape[0], target.shape[1], -1)
@@ -57,74 +57,66 @@ def dice(pred, target, threshold=0.5, smooth=1e-5):
     dsc = (2 * intersection + smooth) / (
         pred_flat.sum(-1) + target_flat.sum(-1) + smooth
     )
-    return dsc[0, 0].item(), dsc[0, 1].item()
+    return dsc[0, 0].item()
 
 
 @torch.no_grad()
 def evaluate(model, loader, device):
     """
     Returns list of dicts:
-        { patient, dsc_left, dsc_right, mean_dsc }
+        { patient, dsc_left }
     """
     results = []
     for scan, mask, pids in loader:
-        # print("loop")
         scan = scan.to(device)
         mask = mask.to(device)
-        # print("time to pred")
         pred = model(scan)
-        # print("mid")
-        dsc_l, dsc_r = dice(pred, mask)
+        dsc_l = dice(pred, mask)
         results.append({
             'patient':  pids[0],
-            'dsc_left':  round(dsc_l, 4),
-            'dsc_right': round(dsc_r, 4),
-            'mean_dsc':  round((dsc_l + dsc_r) / 2, 4),
+            'dsc_left': round(dsc_l, 4),
         })
-        # print(f"results: {results}")
     return results
 
 
 def print_table(results, model_name):
-    print(f"\n{'─'*55}")
+    print(f"\n{'─'*40}")
     print(f"  {model_name}")
-    print(f"{'─'*55}")
-    print(f"  {'Patient':<20} {'DSC Left':>10} {'DSC Right':>10} {'Mean':>8}")
-    print(f"{'─'*55}")
+    print(f"{'─'*40}")
+    print(f"  {'Patient':<20} {'DSC':>10}")
+    print(f"{'─'*40}")
     for r in results:
-        print(f"  {r['patient']:<20} {r['dsc_left']:>10.4f} {r['dsc_right']:>10.4f} {r['mean_dsc']:>8.4f}")
-    print(f"{'─'*55}")
-    means = [r['mean_dsc']  for r in results]
-    lefts = [r['dsc_left']  for r in results]
-    rights= [r['dsc_right'] for r in results]
-    print(f"  {'Mean':<20} {np.mean(lefts):>10.4f} {np.mean(rights):>10.4f} {np.mean(means):>8.4f}")
-    print(f"  {'Std':<20} {np.std(lefts):>10.4f} {np.std(rights):>10.4f} {np.std(means):>8.4f}")
-    print(f"  {'Min':<20} {np.min(lefts):>10.4f} {np.min(rights):>10.4f} {np.min(means):>8.4f}")
-    print(f"  {'Max':<20} {np.max(lefts):>10.4f} {np.max(rights):>10.4f} {np.max(means):>8.4f}")
-    print(f"{'─'*55}")
-    return np.mean(means)
+        print(f"  {r['patient']:<20} {r['dsc_left']:>10.4f}")
+    print(f"{'─'*40}")
+    lefts = [r['dsc_left'] for r in results]
+    print(f"  {'Mean':<20} {np.mean(lefts):>10.4f}")
+    print(f"  {'Std':<20} {np.std(lefts):>10.4f}")
+    print(f"  {'Min':<20} {np.min(lefts):>10.4f}")
+    print(f"  {'Max':<20} {np.max(lefts):>10.4f}")
+    print(f"{'─'*40}")
+    return np.mean(lefts)
 
 
 def print_comparison(basic_results, cbam_results):
-    print(f"\n{'─'*55}")
-    print(f"  Head-to-head comparison (mean DSC per patient)")
-    print(f"{'─'*55}")
+    print(f"\n{'─'*50}")
+    print(f"  Head-to-head comparison (DSC per patient)")
+    print(f"{'─'*50}")
     print(f"  {'Patient':<20} {'Vanilla':>10} {'CBAM':>10} {'Δ':>8}")
-    print(f"{'─'*55}")
+    print(f"{'─'*50}")
     deltas = []
     for b, c in zip(basic_results, cbam_results):
         assert b['patient'] == c['patient'], "Patient order mismatch"
-        delta = c['mean_dsc'] - b['mean_dsc']
+        delta = c['dsc_left'] - b['dsc_left']
         deltas.append(delta)
         sign = '+' if delta >= 0 else ''
-        print(f"  {b['patient']:<20} {b['mean_dsc']:>10.4f} {c['mean_dsc']:>10.4f} {sign}{delta:>7.4f}")
-    print(f"{'─'*55}")
+        print(f"  {b['patient']:<20} {b['dsc_left']:>10.4f} {c['dsc_left']:>10.4f} {sign}{delta:>7.4f}")
+    print(f"{'─'*50}")
     mean_delta = np.mean(deltas)
     sign = '+' if mean_delta >= 0 else ''
     print(f"  {'Mean Δ':<20} {'':>10} {'':>10} {sign}{mean_delta:>7.4f}")
     winner = "CBAM" if mean_delta > 0 else "Vanilla" if mean_delta < 0 else "Tie"
     print(f"\n  Winner: {winner}")
-    print(f"{'─'*55}\n")
+    print(f"{'─'*50}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +133,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed",       type=int, default=42)
     args = parser.parse_args()
 
-    # device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     device = "cpu"
     print(f"Device: {device}")
 
@@ -161,28 +152,14 @@ if __name__ == "__main__":
     # --- evaluate vanilla first, then free it ---
     print("\nEvaluating vanilla U-Net...")
     basic_model   = load_basic(args.basic, device)
-    # print("hello")
     basic_results = evaluate(basic_model, test_loader, device)
     del basic_model
-    # if device == 'mps':
-    #     torch.mps.empty_cache()
 
     # --- now load CBAM ---
     print("Evaluating CBAM U-Net...")
-    cbam_model    = load_cbam(args.cbam, device)
-    cbam_results  = evaluate(cbam_model, test_loader, device)
+    cbam_model   = load_cbam(args.cbam, device)
+    cbam_results = evaluate(cbam_model, test_loader, device)
     del cbam_model
-    # if device.type == 'mps':
-    #     torch.mps.empty_cache()
-
-    # --- load and evaluate ---
-    # print("\nEvaluating vanilla U-Net...")
-    # basic_model   = load_basic(args.basic, device)
-    # basic_results = evaluate(basic_model, test_loader, device)
-
-    # print("Evaluating CBAM U-Net...")
-    # cbam_model    = load_cbam(args.cbam, device)
-    # cbam_results  = evaluate(cbam_model, test_loader, device)
 
     # --- print results ---
     basic_mean = print_table(basic_results, "Vanilla U-Net")

@@ -18,7 +18,7 @@ from unet_cbam import UNet3D_CBAM
 def dice_loss(pred, target, smooth=1e-5):
     """
     Soft Dice loss averaged over batch and classes.
-    pred/target: (B, 2, D, H, W), pred already sigmoid-ed
+    pred/target: (B, 1, D, H, W), pred already sigmoid-ed
     """
     pred_flat   = pred.view(pred.shape[0], pred.shape[1], -1)
     target_flat = target.view(target.shape[0], target.shape[1], -1)
@@ -53,7 +53,7 @@ def combined_loss(pred, target):
 def compute_dsc(pred, target, threshold=0.5, smooth=1e-5):
     """
     Hard Dice per class, averaged over batch.
-    Returns (dsc_left, dsc_right) as Python floats.
+    Returns dsc_left as Python float.
     """
     pred_bin    = (pred > threshold).float()
     pred_flat   = pred_bin.view(pred.shape[0], pred.shape[1], -1)
@@ -65,7 +65,7 @@ def compute_dsc(pred, target, threshold=0.5, smooth=1e-5):
     )
     # dsc shape: (B, 2) — average over batch
     dsc = dsc.mean(0)
-    return dsc[0].item(), dsc[1].item()
+    return dsc[0].item()
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def validate(model, loader, device):
     model.eval()
     total_loss = 0.0
     dsc_left_all  = []
-    dsc_right_all = []
+    # dsc_right_all = []
 
     for scans, masks, _ in loader:
         scans = scans.to(device)
@@ -106,14 +106,14 @@ def validate(model, loader, device):
         loss  = combined_loss(preds, masks)
         total_loss += loss.item()
 
-        dsc_l, dsc_r = compute_dsc(preds, masks)
+        dsc_l = compute_dsc(preds, masks)
         dsc_left_all.append(dsc_l)
-        dsc_right_all.append(dsc_r)
+        # dsc_right_all.append(dsc_r)
 
     return (
         total_loss / len(loader),
         np.mean(dsc_left_all),
-        np.mean(dsc_right_all),
+        # np.mean(dsc_right_all),
     )
 
 
@@ -163,7 +163,7 @@ def train(
 
     # model = UNet3D(
     #     n_channels=1,
-    #     n_classes=2,
+    #     n_classes=1,
     #     input_shape=(48, 208, 272),
     #     bilinear=False,
     #     base_filters=base_filters,
@@ -171,7 +171,7 @@ def train(
 
     model = UNet3D_CBAM(
         n_channels=1,
-        n_classes=2,
+        n_classes=1,
         input_shape=(48, 208, 272),
         bilinear=False,
         base_filters=base_filters,
@@ -198,14 +198,14 @@ def train(
         t0 = time.time()
 
         train_loss = train_one_epoch(model, train_loader, optimizer, device)
-        val_loss, dsc_l, dsc_r = validate(model, val_loader, device)
+        val_loss, dsc_l = validate(model, val_loader, device)
         scheduler.step()
 
-        mean_dsc = (dsc_l + dsc_r) / 2
+        mean_dsc = dsc_l
         elapsed  = time.time() - t0
 
         print(f"{epoch:>6} {train_loss:>12.4f} {val_loss:>10.4f} "
-              f"{dsc_l:>10.4f} {dsc_r:>11.4f} {elapsed:>7.1f}s")
+              f"{dsc_l:>10.4f} {elapsed:>7.1f}s")
 
         # save best checkpoint
         if mean_dsc > best_dsc:
@@ -216,7 +216,7 @@ def train(
                 "model_state": model.state_dict(),
                 "optim_state": optimizer.state_dict(),
                 "dsc_left":    dsc_l,
-                "dsc_right":   dsc_r,
+                # "dsc_right":   dsc_r,
                 "mean_dsc":    mean_dsc,
             }, os.path.join(output_dir, "best_model.pt"))
 

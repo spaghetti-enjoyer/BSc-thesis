@@ -158,7 +158,7 @@ class UNet3D_CBAM(nn.Module):
 
     Args:
         n_channels:   input channels (1 for CT)
-        n_classes:    output classes (2 for left/right parotid)
+        n_classes:    output classes (1 for left parotid)
         input_shape:  (D, H, W) — each dim must be divisible by 16
         bilinear:     use trilinear upsampling instead of transposed convs
         base_filters: filters in first layer (64 recommended)
@@ -169,7 +169,7 @@ class UNet3D_CBAM(nn.Module):
     def __init__(
         self,
         n_channels: int = 1,
-        n_classes: int = 2,
+        n_classes: int = 1,
         input_shape: tuple = (48, 208, 272),
         bilinear: bool = False,
         base_filters: int = 64,
@@ -344,7 +344,7 @@ if __name__ == "__main__":
 
     model = UNet3D_CBAM(
         n_channels=1,
-        n_classes=2,
+        n_classes=1,
         input_shape=(D, H, W),
         bilinear=False,
         base_filters=64,

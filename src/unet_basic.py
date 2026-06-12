@@ -92,7 +92,7 @@ class UNet3D(nn.Module):
 
     Args:
         n_channels:  number of input channels (1 for single-modality CT)
-        n_classes:   number of output segmentation classes (2 for left/right parotid)
+        n_classes:   number of output segmentation classes (1 for left parotid)
         input_shape: (D, H, W) tuple — used only for the dimension check at init.
                      Each dimension must be divisible by 16 (4 pooling steps).
         bilinear:    use trilinear upsampling instead of transposed convolutions
@@ -103,7 +103,7 @@ class UNet3D(nn.Module):
     def __init__(
         self,
         n_channels: int = 1,
-        n_classes: int = 2,
+        n_classes: int = 1,
         input_shape: tuple = (48, 196, 272),  # (D, H, W)
         bilinear: bool = False,
         base_filters: int = 64,
@@ -355,7 +355,7 @@ if __name__ == "__main__":
 
     model = UNet3D(
         n_channels=1,
-        n_classes=2,
+        n_classes=1,
         input_shape=(D, H, W),
         bilinear=False,
         base_filters=32,
