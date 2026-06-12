@@ -10,6 +10,19 @@ from dataset import PDDCADataset, make_splits
 from unet_basic import UNet3D
 from unet_cbam import UNet3D_CBAM
 
+"""
+python src/train-basic.py \
+  --data parotid_PDDCA+deepmind \
+  --output checkpoints \
+  --epochs 200 \
+  --batch_size 2 \
+  --lr 1e-4 \
+  --base_filters 32 \
+  --num_workers 4 \
+  --model_name unet \
+  2>&1 | tee checkpoints/unet_train.log
+"""
+
 
 # ---------------------------------------------------------------------------
 # Loss
@@ -183,7 +196,7 @@ def train(
     print(f"Trainable parameters: {n_params:,}")
 
     # --- optimizer + scheduler ---
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5) # added weight decay
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=epochs, eta_min=1e-6
     )
@@ -193,8 +206,8 @@ def train(
     best_epoch = 0
 
     print(f"\n{'Epoch':>6} {'Train Loss':>12} {'Val Loss':>10} "
-          f"{'DSC Left':>10} {'DSC Right':>11} {'Time':>8}")
-    print("-" * 65)
+          f"{'DSC Left':>10} {'Time':>8}")
+    print("-" * 55)
 
     for epoch in range(1, epochs + 1):
         t0 = time.time()
