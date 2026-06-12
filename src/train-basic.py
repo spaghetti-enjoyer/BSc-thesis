@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from dataset import PDDCADataset, make_splits
-# from unet_basic import UNet3D
+from unet_basic import UNet3D
 from unet_cbam import UNet3D_CBAM
 
 
@@ -123,6 +123,7 @@ def validate(model, loader, device):
 
 def train(
     data_root:    str,
+    model_name:   str,
     output_dir:   str  = "./checkpoints",
     epochs:       int  = 200,
     batch_size:   int  = 2,
@@ -161,21 +162,22 @@ def train(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # model = UNet3D(
-    #     n_channels=1,
-    #     n_classes=1,
-    #     input_shape=(48, 208, 272),
-    #     bilinear=False,
-    #     base_filters=base_filters,
-    # ).to(device)
-
-    model = UNet3D_CBAM(
-        n_channels=1,
-        n_classes=1,
-        input_shape=(48, 208, 272),
-        bilinear=False,
-        base_filters=base_filters,
-    ).to(device)
+    if model_name == "unet":
+        model = UNet3D(
+            n_channels=1,
+            n_classes=1,
+            input_shape=(48, 208, 272),
+            bilinear=False,
+            base_filters=base_filters,
+        ).to(device)
+    else:
+        model = UNet3D_CBAM(
+            n_channels=1,
+            n_classes=1,
+            input_shape=(48, 208, 272),
+            bilinear=False,
+            base_filters=base_filters,
+        ).to(device)
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable parameters: {n_params:,}")
@@ -251,6 +253,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_size",     type=int,   default=5)
     parser.add_argument("--test_size",    type=int,   default=5)
     parser.add_argument("--num_workers",  type=int,   default=2)
+    parser.add_argument("--model_name",   type=str,    required=True, help="unet or cbam")
     args = parser.parse_args()
 
     train(
@@ -263,4 +266,5 @@ if __name__ == "__main__":
         val_size=args.val_size,
         test_size=args.test_size,
         num_workers=args.num_workers,
+        model_name=args.model_name
     )
