@@ -186,7 +186,7 @@ def make_splits(root: str, val_size: int = 5, test_size: int = 5, seed: int = 42
 if __name__ == "__main__":
     import sys
 
-    root = sys.argv[1] if len(sys.argv) > 1 else "BSc-Thesis-Datasets/parotid_PDDCA+deepmind"
+    root = sys.argv[1] if len(sys.argv) > 1 else "BSc-thesis/parotid_PDDCA+deepmind"
 
     train_ds, val_ds, test_ds = make_splits(root, val_size=5, test_size=5)
 
