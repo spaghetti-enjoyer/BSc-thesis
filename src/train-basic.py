@@ -17,7 +17,7 @@ python src/train-basic.py \
   --epochs 200 \
   --batch_size 2 \
   --lr 1e-4 \
-  --base_filters 32 \
+  --base_filters 64 \
   --num_workers 4 \
   --model_name unet \
   2>&1 | tee checkpoints/unet_train.log
@@ -196,7 +196,7 @@ def train(
     print(f"Trainable parameters: {n_params:,}")
 
     # --- optimizer + scheduler ---
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5) # added weight decay
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr) #, weight_decay=1e-5) # added weight decay
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=epochs, eta_min=1e-6
     )

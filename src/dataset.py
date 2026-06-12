@@ -108,7 +108,7 @@ class PDDCADataset(Dataset):
         for pid in self.ids:
             scan_path = os.path.join(root, pid, 'img.nrrd')
             left_path = os.path.join(root, pid, 'structures', 'Parotid_L.nrrd')
-            # right_path= os.path.join(root, pid, 'structures', 'Parotid_R.nrrd')
+            right_path= os.path.join(root, pid, 'structures', 'Parotid_R.nrrd')
             for p in [scan_path, left_path]: #, right_path]:
                 if not os.path.exists(p):
                     raise FileNotFoundError(f"Missing file: {p}")
@@ -122,18 +122,19 @@ class PDDCADataset(Dataset):
 
         scan,  _ = nrrd.read(os.path.join(self.root, pid, 'img.nrrd'))
         left,  _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_L.nrrd'))
-        # right, _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_R.nrrd'))
+        right, _ = nrrd.read(os.path.join(self.root, pid, 'structures', 'Parotid_R.nrrd'))
 
         # nrrd loads as (W, H, D) by convention — transpose to (D, H, W)
         scan  = scan.transpose(2, 0, 1).astype(np.float32)   # (D, H, W)
         left  = left.transpose(2, 0, 1).astype(np.float32)
-        # right = right.transpose(2, 0, 1).astype(np.float32)
+        right = right.transpose(2, 0, 1).astype(np.float32)
 
         # normalize scan
         scan = normalize(scan)
 
         # stack masks into 2-channel array: (2, D, H, W)
-        mask = np.stack([left], axis=0)
+        # mask = np.stack([left], axis=0)
+        mask = np.stack([np.logical_or(left, right).astype(np.float32)], axis=0)
 
         # augment (training only)
         if self.do_augment:
